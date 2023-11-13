@@ -1,8 +1,7 @@
-#![allow(unused)]
+#![no_std]
 
 use core::mem::MaybeUninit;
-use core::array::from_fn;
-use tiny_serde::{TryDeserialize, Serialize};
+use tiny_serde::TryDeserialize;
 
 pub enum PatternError {
     NotFound, // end of iter was reached when looking for value
