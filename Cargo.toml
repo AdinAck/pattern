@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 defmt = "0.3.5"
 tiny-serde = { git = "https://github.com/AdinAck/tiny-serde", branch = "main" }
+
+[features]
+defmt = []

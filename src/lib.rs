@@ -2,9 +2,10 @@
 
 use core::mem::MaybeUninit;
 use tiny_serde::TryDeserialize;
+#[cfg(feature = "defmt")]
 use defmt::Format;
 
-#[derive(Format)]
+#[cfg_attr(feature = "defmt", derive(Format))]
 pub enum PatternError {
     NotFound, // end of iter was reached when looking for value
     FailedDeserialize, // type could not be deserialized from data
