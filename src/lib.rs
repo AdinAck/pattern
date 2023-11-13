@@ -2,7 +2,9 @@
 
 use core::mem::MaybeUninit;
 use tiny_serde::TryDeserialize;
+use defmt::Format;
 
+#[derive(Format)]
 pub enum PatternError {
     NotFound, // end of iter was reached when looking for value
     FailedDeserialize, // type could not be deserialized from data
