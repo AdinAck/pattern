@@ -216,6 +216,7 @@ where
 }
 
 /// Facilitates the extraction and validation of desired sequences of items from an iterator.
+#[derive(Clone)]
 pub struct Pattern<I>
 where
     I: Iterator,
