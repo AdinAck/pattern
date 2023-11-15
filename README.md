@@ -40,3 +40,9 @@ fn get_from_data(data: &mut &[u8]) -> Result<(u8, u16, u16, u32), PatternError> 
 This crate uses the [tiny-serde](https://github.com/AdinAck/tiny-serde) crate for deserialization.
 
 [defmt](https://github.com/knurling-rs/defmt) is available behind a feature gate for formatting `PatternError`.
+
+# Design Considerations
+
+## Safety
+
+This crate *does* use `unsafe` blocks but has been proven to never exhibit undefined behavior.
