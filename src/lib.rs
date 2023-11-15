@@ -1,7 +1,7 @@
 #![no_std]
 
 use core::mem::MaybeUninit;
-use tiny_serde::TryDeserialize;
+use tiny_serde::Deserialize;
 #[cfg(feature = "defmt")]
 use defmt::Format;
 
@@ -181,8 +181,7 @@ where
 
 impl<'a, I, const N: usize> GetStrategy<'a, I, N>
 where
-    I: Iterator,
-    I::Item: Copy
+    I: Iterator<Item = u8>,
 {
     fn new(pattern: &'a mut Pattern<I>) -> Self {
         Self { pattern }
@@ -190,13 +189,13 @@ where
 
     pub fn extract_and<T, const K: usize, F>(&mut self, mut closure: F) -> Result<[T; N], PatternError>
     where
-        T: TryDeserialize<I::Item, K> + Copy,
+        T: Deserialize<K> + Copy,
         F: FnMut(&[I::Item])
     {
         let mut result = [unsafe { MaybeUninit::uninit().assume_init() }; N];
 
         for i in 0..N {
-            if let Some(value) = T::try_deserialize(self.pattern.any().extract_and(&mut closure)?) {
+            if let Some(value) = T::deserialize(self.pattern.any().extract_and(&mut closure)?) {
                 result[i] = value;
             } else {
                 return Err(PatternError::FailedDeserialize)
@@ -209,7 +208,7 @@ where
     #[inline]
     pub fn extract<T, const K: usize>(&mut self) -> Result<[T; N], PatternError>
     where
-        T: TryDeserialize<I::Item, K> + Copy,
+        T: Deserialize<K> + Copy,
     {
         self.extract_and(|_| { })
     }
@@ -268,7 +267,7 @@ where
 
     pub fn get<'a, const N: usize>(&mut self) -> GetStrategy<I, N>
     where
-        I::Item: Copy
+        I: Iterator<Item = u8>
     {
         GetStrategy::new(self)
     }

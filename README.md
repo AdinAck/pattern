@@ -2,7 +2,7 @@
 
 A compact pattern recognition and extraction system.
 
-# no_std
+## no_std
 
 This crate is intended for use in `no_std` environments.
 
@@ -20,7 +20,7 @@ fn get_from_data(data: &mut &[u8]) -> Result<(u8, u16, u16, u32), PatternError> 
         .extract()?; // attempt extraction
 
     let [a] = pattern
-        .get() // deserialize 1 expected type of a (in this case u8)
+        .get() // deserialize 1 expected type from u8's (.get() only supports u8's)
         .extract()?;
 
     let [b, c] = pattern
@@ -37,6 +37,6 @@ fn get_from_data(data: &mut &[u8]) -> Result<(u8, u16, u16, u32), PatternError> 
 
 # Dependencies
 
-pattern uses the [tiny-serde](https://github.com/AdinAck/tiny-serde) crate for deserialization.
+This crate uses the [tiny-serde](https://github.com/AdinAck/tiny-serde) crate for deserialization.
 
 [defmt](https://github.com/knurling-rs/defmt) is available behind a feature gate for formatting `PatternError`.
