@@ -220,7 +220,8 @@ pub struct Pattern<I>
 where
     I: Iterator,
 {
-    iter: I
+    iter: I,
+    count: usize
 }
 
 impl<I> Pattern<I>
@@ -229,7 +230,8 @@ where
 {
     pub fn new(iter: I) -> Self {
         Self {
-            iter
+            iter,
+            count: 0
         }
     }
 
@@ -245,6 +247,8 @@ where
                 return Err(PatternError::NotFound);
             }
         }
+
+        self.count += count;
 
         Ok(())
     }
@@ -270,5 +274,9 @@ where
         I: Iterator<Item = u8>
     {
         GetStrategy::new(self)
+    }
+
+    pub fn count(&self) -> usize {
+        self.count
     }
 }
