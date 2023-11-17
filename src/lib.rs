@@ -7,128 +7,8 @@ use defmt::Format;
 
 #[cfg_attr(feature = "defmt", derive(Format))]
 pub enum PatternError {
-    NotFound, // end of iter was reached when looking for value
-    FailedDeserialize, // type could not be deserialized from data
-    IncorrectValue // expected value was not read
-}
-
-/// Expects an immediate sequence of given values in order.
-pub struct ImmediateValueStrategy<'a, I, const N: usize>
-where
-    I: Iterator,
-{
-    pattern: &'a mut Pattern<I>,
-    values: [I::Item; N],
-}
-
-impl<'a, I, const N: usize> ImmediateValueStrategy<'a, I, N>
-where
-    I: Iterator,
-    I::Item: PartialEq + Copy,
-{
-    fn new(pattern: &'a mut Pattern<I>, values: [I::Item; N]) -> Self {
-        Self { pattern, values }
-    }
-
-    /// Converts the [ImmediateValueStrategy] strategy into a [DeferredValueStrategy].
-    pub fn deferred(self) -> DeferredValueStrategy<'a, I, N> {
-        self.into()
-    }
-
-    /// Extracts the (consumed) values that were expected (or a [PatternError]).
-    pub fn extract_and<F>(&mut self, mut closure: F) -> Result<[I::Item; N], PatternError>
-    where
-        F: FnMut(&I::Item)
-    {
-        let mut result = [unsafe { MaybeUninit::uninit().assume_init() }; N];
-
-        self.pattern.collect(N, |i, candidate| {
-            if candidate == self.values[i] {
-                result[i] = candidate;
-
-                closure(&candidate);
-
-                Ok(())
-            } else {
-                Err(PatternError::IncorrectValue)
-            }
-        })?;
-
-        Ok(result)
-    }
-
-    #[inline]
-    pub fn extract(&mut self) -> Result<[I::Item; N], PatternError> {
-        self.extract_and(|_| { })
-    }
-}
-
-/// Expects a sequence of given values whenever discovered later.
-pub struct DeferredValueStrategy<'a, I, const N: usize>
-where
-    I: Iterator,
-{
-    pattern: &'a mut Pattern<I>,
-    values: [I::Item; N],
-}
-
-impl<'a, I, const N: usize> DeferredValueStrategy<'a, I, N>
-where
-    I: Iterator,
-    I::Item: PartialEq + Copy,
-{
-    /// Extracts the (consumed) values that were expected (or a [PatternError]).
-    pub fn extract_and<F>(&mut self, mut closure: F) -> Result<[I::Item; N], PatternError>
-    where
-        F: FnMut(&[I::Item])
-    {
-        let mut result = [unsafe { MaybeUninit::uninit().assume_init() }; N];
-
-        // find first value
-        loop {
-            if let Some(candidate) = self.pattern.iter.next() {
-                if candidate == self.values[0] {
-                    result[0] = candidate;
-                    break;
-                }
-            } else {
-                return Err(PatternError::NotFound);
-            }
-        }
-
-        // collect the rest of the values normally
-        self.pattern.collect(N - 1, |i, candidate| {
-            if candidate == self.values[i + 1] {
-                result[i + 1] = candidate;
-
-                Ok(())
-            } else {
-                Err(PatternError::IncorrectValue)
-            }
-        })?;
-
-        closure(&result);
-
-        Ok(result)
-    }
-
-    #[inline]
-    pub fn extract(&mut self) -> Result<[I::Item; N], PatternError> {
-        self.extract_and(|_| { })
-    }
-}
-
-impl<'a, I, const N: usize> From<ImmediateValueStrategy<'a, I, N>>
-    for DeferredValueStrategy<'a, I, N>
-where
-    I: Iterator,
-{
-    fn from(value: ImmediateValueStrategy<'a, I, N>) -> Self {
-        DeferredValueStrategy {
-            pattern: value.pattern,
-            values: value.values,
-        }
-    }
+    NotFound(usize), // end of iter was reached when looking for value
+    FailedDeserialize(usize), // type could not be deserialized from data
 }
 
 /// Expects N values of any value immediately.
@@ -198,7 +78,7 @@ where
             if let Some(value) = T::deserialize(self.pattern.any().extract_and(&mut closure)?) {
                 result[i] = value;
             } else {
-                return Err(PatternError::FailedDeserialize)
+                return Err(PatternError::FailedDeserialize(self.pattern.count()))
             }
         }
 
@@ -218,10 +98,10 @@ where
 #[derive(Clone)]
 pub struct Pattern<I>
 where
-    I: Iterator,
+    I: Iterator
 {
     iter: I,
-    count: usize
+    count: usize,
 }
 
 impl<I> Pattern<I>
@@ -246,7 +126,7 @@ where
                 }
             } else {
                 self.count += i;
-                return Err(PatternError::NotFound);
+                return Err(PatternError::NotFound(self.count()));
             }
         }
 
@@ -255,16 +135,8 @@ where
         Ok(())
     }
 
-    /// Dispatches an [ImmediateValueStrategy].
-    pub fn values<const N: usize>(&mut self, values: [I::Item; N]) -> ImmediateValueStrategy<I, N>
-    where
-        I::Item: PartialEq + Copy
-    {
-        ImmediateValueStrategy::new(self, values)
-    }
-
     /// Dispatches an [AnyStrategy].
-    pub fn any<const N: usize>(&mut self) -> AnyStrategy<I, N>
+    fn any<const N: usize>(&mut self) -> AnyStrategy<I, N>
     where
         I::Item: Copy
     {
