@@ -241,9 +241,11 @@ where
         for i in 0..count {
             if let Some(candidate) = self.iter.next() {
                 if let Err(e) = callback(i, candidate) {
+                    self.count += i;
                     return Err(e);
                 }
             } else {
+                self.count += i;
                 return Err(PatternError::NotFound);
             }
         }
