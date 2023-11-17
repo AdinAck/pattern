@@ -7,7 +7,7 @@ use defmt::Format;
 
 #[cfg_attr(feature = "defmt", derive(Format))]
 pub enum PatternError {
-    NotFound(usize), // end of iter was reached when looking for value
+    NotFound, // end of iter was reached when looking for value
     FailedDeserialize(usize), // type could not be deserialized from data
 }
 
@@ -126,7 +126,7 @@ where
                 }
             } else {
                 self.count += i;
-                return Err(PatternError::NotFound(self.count()));
+                return Err(PatternError::NotFound);
             }
         }
 
