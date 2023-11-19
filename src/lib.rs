@@ -19,10 +19,10 @@ where
     pattern: &'a mut Pattern<I>,
 }
 
+/// Scans for N bytes and extracts them if available.
 impl<'a, I, const N: usize> AnyStrategy<'a, I, N>
 where
-    I: Iterator,
-    I::Item: Copy
+    I: Iterator
 {
     fn new(pattern: &'a mut Pattern<I>) -> Self {
         Self { pattern }
@@ -33,13 +33,15 @@ where
     where
         F: FnMut(&[I::Item])
     {
-        let mut result = [unsafe { MaybeUninit::uninit().assume_init() }; N];
+        let mut result = unsafe { MaybeUninit::<[I::Item; N]>::uninit().assume_init() };
 
         self.pattern.collect(N, |i, candidate| {
             result[i] = candidate;
 
             Ok(())
         })?;
+
+        let result = result;
 
         closure(&result);
 
@@ -52,6 +54,7 @@ where
     }
 }
 
+/// Scans for types that implement `tiny_serde::Deserialize` and extracts N of them.
 pub struct GetStrategy<'a, I, const N: usize>
 where
     I: Iterator
@@ -69,10 +72,10 @@ where
 
     pub fn extract_and<T, const K: usize, F>(&mut self, mut closure: F) -> Result<[T; N], PatternError>
     where
-        T: Deserialize<K> + Copy,
+        T: Deserialize<K>,
         F: FnMut(&[I::Item])
     {
-        let mut result = [unsafe { MaybeUninit::uninit().assume_init() }; N];
+        let mut result = unsafe { MaybeUninit::<[T; N]>::uninit().assume_init() };
 
         for i in 0..N {
             if let Some(value) = T::deserialize(self.pattern.any().extract_and(&mut closure)?) {
@@ -136,13 +139,11 @@ where
     }
 
     /// Dispatches an [AnyStrategy].
-    fn any<const N: usize>(&mut self) -> AnyStrategy<I, N>
-    where
-        I::Item: Copy
-    {
+    fn any<const N: usize>(&mut self) -> AnyStrategy<I, N> {
         AnyStrategy::new(self)
     }
 
+    /// Dispatches a [GetStrategy].
     pub fn get<'a, const N: usize>(&mut self) -> GetStrategy<I, N>
     where
         I: Iterator<Item = u8>
